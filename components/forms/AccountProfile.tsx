@@ -1,6 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { updateUser } from "@/libs/actions/user.actions";
+import { usePathname, useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
 
 interface Props {
   user: {
@@ -15,35 +17,47 @@ interface Props {
 }
 
 export default function AccountProfile({ user, btnTitle }: Props) {
+  // ADD VALIDATION 
   const [imgUrl, setImgUrl] = useState<string | null>(user.image);
-  const imgUrlRef = useRef<HTMLInputElement>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  // SUBMIT
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    await updateUser(
+      user.id,
+      data.get("username") as string,
+      data.get("name") as string,
+      data.get("bio") as string,
+      // data.get("image") as string,
+      (imgUrl || "/profile.svg") as string,
+      pathname
+    )
+      .then((res) => {
+        console.log(res);
+        if (pathname == "/profile/edit") {
+          router.back();
+        } else {
+          router.push("/");
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
 
   function handleImgChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-
-      // When the file is loaded, set the image URL to its data URL
       reader.onload = () => {
         setImgUrl(reader.result as string);
       };
-
-      reader.readAsDataURL(file); // Read the file as a data URL
+      reader.readAsDataURL(file);
     } else {
-      setImgUrl(null); // Clear the preview if no file is selected
+      setImgUrl(null);
     }
-  }
-
-  function deleteSelectedImg() {
-    setImgUrl(null);
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    // const data = new FormData(event.currentTarget);
-    const data = new FormData(event.currentTarget);
-
-    console.log(Object.fromEntries(data.entries()), imgUrl, data.get("image"));
   }
 
   return (
@@ -66,7 +80,7 @@ export default function AccountProfile({ user, btnTitle }: Props) {
           >
             Choose a profile picture
           </label>
-          {imgUrl && (
+          {/* {imgUrl && (
             <button
               type="button"
               className="bg-red-500 px-2 rounded-full text-white"
@@ -74,7 +88,7 @@ export default function AccountProfile({ user, btnTitle }: Props) {
             >
               X
             </button>
-          )}
+          )} */}
 
           <input
             id="image"
@@ -118,6 +132,7 @@ export default function AccountProfile({ user, btnTitle }: Props) {
             id="username"
             name="username"
             type="text"
+            defaultValue={user.username}
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
@@ -134,6 +149,7 @@ export default function AccountProfile({ user, btnTitle }: Props) {
           <textarea
             id="bio"
             name="bio"
+            defaultValue={user.bio}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           ></textarea>
         </div>
